@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CyanFin Plugin</title>
+</head>
+<body>
+  <div id="CyanFinConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
+    <div data-role="content">
+      <div class="content-primary">
+        <form class="CyanFinConfigForm">
+
+          <div class="sectionTitleContainer flex align-items-center">
+            <h2 class="sectionTitle">🎬 CyanFin Plugin</h2>
+          </div>
+          <p style="color:#aaa;margin-bottom:24px">
+            Deep integration between Jellyfin and the CyanFin frontend.
+            Provides trickplay thumbnails, watch parties, push notifications, and custom metadata.
+          </p>
+
+          <!-- CyanFin Server -->
+          <div class="inputContainer">
+            <label class="inputLabel" for="cyanfinUrl">CyanFin Server URL</label>
+            <input id="cyanfinUrl" class="emby-input" type="url" placeholder="http://192.168.1.x:3002" />
+            <div class="fieldDescription">URL of your CyanFin container. Leave empty to disable push notifications.</div>
+          </div>
+
+          <div class="inputContainer">
+            <label class="inputLabel" for="webhookSecret">Webhook Secret</label>
+            <input id="webhookSecret" class="emby-input" type="password" placeholder="Optional shared secret" />
+            <div class="fieldDescription">Optional secret to authenticate webhook calls between Jellyfin and CyanFin.</div>
+          </div>
+
+          <!-- Trickplay -->
+          <h3 class="checkboxListLabel">Trickplay</h3>
+          <div class="checkboxContainer checkboxContainer-withDescription">
+            <label class="emby-checkbox-label">
+              <input id="enableTrickplay" class="emby-checkbox" type="checkbox" />
+              <span>Enable Trickplay Thumbnails</span>
+            </label>
+            <div class="fieldDescription checkboxFieldDescription">Generate scrubber preview thumbnails (requires ffmpeg).</div>
+          </div>
+          <div class="inputContainer">
+            <label class="inputLabel" for="trickplayWidth">Thumbnail Width (px)</label>
+            <input id="trickplayWidth" class="emby-input" type="number" min="120" max="480" step="40" />
+          </div>
+          <div class="inputContainer">
+            <label class="inputLabel" for="trickplayInterval">Thumbnail Interval (seconds)</label>
+            <input id="trickplayInterval" class="emby-input" type="number" min="5" max="60" step="5" />
+            <div class="fieldDescription">How often to capture a thumbnail. 10s recommended.</div>
+          </div>
+
+          <!-- Watch Party -->
+          <h3 class="checkboxListLabel">Watch Party</h3>
+          <div class="checkboxContainer checkboxContainer-withDescription">
+            <label class="emby-checkbox-label">
+              <input id="enableWatchParty" class="emby-checkbox" type="checkbox" />
+              <span>Enable Watch Party Sessions</span>
+            </label>
+            <div class="fieldDescription checkboxFieldDescription">Allow multiple CyanFin users to watch in sync.</div>
+          </div>
+          <div class="inputContainer">
+            <label class="inputLabel" for="maxSessions">Max Concurrent Sessions</label>
+            <input id="maxSessions" class="emby-input" type="number" min="1" max="50" />
+          </div>
+
+          <!-- Notifications -->
+          <h3 class="checkboxListLabel">Notifications</h3>
+          <div class="checkboxContainer checkboxContainer-withDescription">
+            <label class="emby-checkbox-label">
+              <input id="enableNotifications" class="emby-checkbox" type="checkbox" />
+              <span>Push Notifications to CyanFin</span>
+            </label>
+            <div class="fieldDescription checkboxFieldDescription">Notify CyanFin when items are added, playback starts/stops, etc.</div>
+          </div>
+
+          <!-- Custom Metadata -->
+          <h3 class="checkboxListLabel">Custom Metadata</h3>
+          <div class="checkboxContainer checkboxContainer-withDescription">
+            <label class="emby-checkbox-label">
+              <input id="enableCustomMetadata" class="emby-checkbox" type="checkbox" />
+              <span>Enable Custom Metadata</span>
+            </label>
+            <div class="fieldDescription checkboxFieldDescription">Personal ratings, notes and tags per user, stored separately from Jellyfin metadata.</div>
+          </div>
+
+          <div>
+            <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+              <span>Save</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    var CyanFinConfig = {
+      pluginUniqueId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+
+      load: function(page) {
+        ApiClient.getPluginConfiguration(CyanFinConfig.pluginUniqueId).then(function(config) {
+          page.querySelector('#cyanfinUrl').value = config.CyanFinServerUrl || '';
+          page.querySelector('#webhookSecret').value = config.WebhookSecret || '';
+          page.querySelector('#enableTrickplay').checked = config.EnableTrickplay;
+          page.querySelector('#trickplayWidth').value = config.TrickplayWidth || 320;
+          page.querySelector('#trickplayInterval').value = config.TrickplayInterval || 10;
+          page.querySelector('#enableWatchParty').checked = config.EnableWatchParty;
+          page.querySelector('#maxSessions').value = config.MaxWatchPartySessions || 10;
+          page.querySelector('#enableNotifications').checked = config.EnableNotifications;
+          page.querySelector('#enableCustomMetadata').checked = config.EnableCustomMetadata;
+        });
+      },
+
+      save: function(page) {
+        ApiClient.getPluginConfiguration(CyanFinConfig.pluginUniqueId).then(function(config) {
+          config.CyanFinServerUrl = page.querySelector('#cyanfinUrl').value;
+          config.WebhookSecret = page.querySelector('#webhookSecret').value;
+          config.EnableTrickplay = page.querySelector('#enableTrickplay').checked;
+          config.TrickplayWidth = parseInt(page.querySelector('#trickplayWidth').value) || 320;
+          config.TrickplayInterval = parseInt(page.querySelector('#trickplayInterval').value) || 10;
+          config.EnableWatchParty = page.querySelector('#enableWatchParty').checked;
+          config.MaxWatchPartySessions = parseInt(page.querySelector('#maxSessions').value) || 10;
+          config.EnableNotifications = page.querySelector('#enableNotifications').checked;
+          config.EnableCustomMetadata = page.querySelector('#enableCustomMetadata').checked;
+
+          ApiClient.updatePluginConfiguration(CyanFinConfig.pluginUniqueId, config).then(function() {
+            Dashboard.processPluginConfigurationUpdateResult();
+          });
+        });
+      }
+    };
+
+    document.querySelector('#CyanFinConfigPage')
+      .addEventListener('pageshow', function() { CyanFinConfig.load(this); });
+
+    document.querySelector('.CyanFinConfigForm')
+      .addEventListener('submit', function(e) {
+        e.preventDefault();
+        CyanFinConfig.save(document.querySelector('#CyanFinConfigPage'));
+      });
+  </script>
+</body>
+</html>
